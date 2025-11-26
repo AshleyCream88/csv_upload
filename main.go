@@ -78,6 +78,8 @@ func createVideo(opts struct {
 	reqAddAllCookie(req, opts.cookie)
 	resp, err = http.DefaultClient.Do(req)
 	checkError(err)
+	bytes, err := io.ReadAll(resp.Body)
+	fmt.Println(string(bytes), err)
 	defer resp.Body.Close()
 }
 
@@ -115,6 +117,7 @@ func loginGetCookie() []*http.Cookie {
 	form.Set("passwd", "sP61e2K8pTcOSI5J")
 	form.Set("chk", inputNumber())
 	req, err := http.NewRequest("POST", "https://aembed.com/adt8/index.php", strings.NewReader(form.Encode()))
+	checkError(err)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	for _, cookie := range resp.Cookies() {
 		req.AddCookie(cookie)
