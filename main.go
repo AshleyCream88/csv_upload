@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 )
 
@@ -43,41 +42,39 @@ func createVideo(opts struct {
 	checkError(err)
 	resp, err := http.DefaultClient.Do(req)
 	checkError(err)
-	body, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	checkError(err)
 	form := make(url.Values)
 	form.Set("show", "1")
 	form.Set("origurl", opts.record[3])
+	form.Set("type", opts.record[4])
+	form.Set("origtype", "")
 	form.Set("capcode", "")
 	form.Set("type2", "")
 	form.Set("origtype2", "")
 	form.Set("type3", "")
 	form.Set("origtype3", "")
 	form.Set("downloadbatch", "")
-	form.Set("origlength", "")
-	form.Set("newlength", "")
-	form.Set("act", "確認送出")
-	form.Set("ID", "")
-	form.Set("MM_update", "form1")
-	compile, err := regexp.Compile(`window.opener.document.forms.form1.(\w+)\.value = "([^"]*)"`)
-	checkError(err)
-	matches := compile.FindAllStringSubmatch(string(body), -1)
-	if len(matches) == 0 {
-		return
-	}
-	for _, match := range matches {
-		form.Set(match[1], match[2])
+	links := strings.Split(strings.TrimSpace(opts.record[5]), "\n")
+	for _, link := range links {
+		form.Add("downloadurl", link)
 	}
 	form.Set("title", opts.record[1])
+	form.Set("poster", opts.record[6])
+	form.Set("contents", opts.record[7])
 	form.Set("tags", opts.record[2])
-	form.Set("preview", opts.record[4])
-	form.Set("starts", opts.record[6])
-	form.Set("ends", opts.record[7])
+	form.Set("origlength", "")
+	form.Set("newlength", "")
+	form.Set("starts", opts.record[10])
+	form.Set("ends", opts.record[11])
+	form.Set("act", "確認送出")
+	form.Set("preview", opts.record[8])
+	form.Set("ID", "")
+	form.Set("MM_update", "form1")
 	req, err = http.NewRequest("POST", "https://aembed.com/adt8/video_edit.php?order=&page=1&rows_pre_page=50", strings.NewReader(form.Encode()))
+	checkError(err)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
-	checkError(err)
 	reqAddAllCookie(req, opts.cookie)
 	resp, err = http.DefaultClient.Do(req)
 	checkError(err)
@@ -92,11 +89,11 @@ func reqAddAllCookie(req *http.Request, cookie []*http.Cookie) *http.Request {
 }
 
 func openCsvGetRecords() [][]string {
-	file, err := os.OpenFile("AV_600449.csv", os.O_RDONLY, 777)
-	defer file.Close()
+	file, err := os.Open("AV_1.csv")
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer file.Close()
 	reader := csv.NewReader(file)
 	records, err := reader.ReadAll()
 	if err != nil {
